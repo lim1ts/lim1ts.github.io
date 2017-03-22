@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: post
 title:  "First Post"
 comments: true
 date:   2017-03-12 22:50:00
