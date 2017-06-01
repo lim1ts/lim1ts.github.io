@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  
+  <head>
+  <meta charset="UTF-8">
+  <title>lim1ts' homepage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#157878">
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/cayman.css">
+</head>
+
+  <body>
+    <section class="page-header">
+  <h1 class="project-name">lim1ts' homepage</h1>
+  <h2 class="project-tagline">An newbie's journey into Security and Networks</h2>
+  <a href="/" class="btn">Home</a>
+  <a href="/about" class="btn">About</a>
+  <a href="/contact" class="btn">Contact me</a>
+  <h3>Massive works in progress. Check back soon!</h3>
+</section>
+
+
+    <section class="main-content">
+      
+      <h1>[0x] Basic Reversing with Radare2 and GDB Peda.</h1>
+<p class="meta">28 May 2017</p>
+
+<h4 id="i-previously-wanted-to-complete-a-few-more-crackmes-but-this-has-been-sitting-in-my-local-repo-for-a-week-ill-have-to-push-this-out-first---more-to-come-in-time-">I previously wanted to complete a few more <code class="highlighter-rouge">crackmes</code>, but this has been sitting in my local repo for a week. I’ll have to push this out first - more to come in time! :)</h4>
+
+<h1 id="requirements">Requirements:</h1>
+<ol>
+  <li>Radare2</li>
+  <li>GDB Peda</li>
+  <li>
+    <p>Basic Linux command line knowledge</p>
+
+    <p>Binary Ninja or IDA Pro works as well, since we’re not diving into the scripting abilities of Radare2 yet.</p>
+  </li>
+</ol>
+
+<h1 id="introduction">Introduction</h1>
+<p>To start things off, download the challenges pack from RPISEC:<a href="http://security.cs.rpi.edu/courses/binexp-spring2015/lectures/2/challenges.zip">challenges</a>. These are all ELF binaries, so you need a Linux system to run them. Their lecture slides and course materials can be accessed <a href="http://security.cs.rpi.edu/courses/binexp-spring2015/">here</a>.</p>
+
+<p>Make sure you have downloaded <a href="https://github.com/longld/peda">GDB Peda</a> and <a href="https://github.com/radare/radare2">Radare2</a>.</p>
+
+<h2 id="crackme0x00a">[crackme0x00a]</h2>
+<p>Lets start up Radare2 by doing <code class="highlighter-rouge">r2 crackme0x00a</code>.
+The first thing you see from the output (ignoring the greeter message), would be a memory address followed by the input section.
+This address is your current position in the file.</p>
+
+<h3 id="some-cursory-commands">Some cursory commands</h3>
+<p>To navigate the binary, use <code class="highlighter-rouge">s</code>. 
+To print out the next few hex values, use <code class="highlighter-rouge">x</code>.</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>[0x08048430]&gt; s
+0x8048430
+[0x08048430]&gt; x 16
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0x08048430  31ed 5e89 e183 e4f0 5054 5268 e085 0408  1.^.....PTRh....
+[0x08048430]&gt; x 32
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0x08048430  31ed 5e89 e183 e4f0 5054 5268 e085 0408  1.^.....PTRh....
+0x08048440  6870 8504 0851 5668 e484 0408 e8bf ffff  hp...QVh........
+[0x08048430]&gt; s++
+[0x08048530]&gt; s-- 16
+[0x08048430]&gt; s++
+[0x08048530]&gt; s--
+[0x08048430]&gt; s?
+|Usage: s  # Seek commands
+| s                 Print current address
+| s:pad             Print current address with N padded zeros (defaults to 8)
+| s addr            Seek to address
+| s-                Undo seek
+| s- n              Seek n bytes backward
+| s--               Seek blocksize bytes backward
+| s+                Redo seek
+| s+ n              Seek n bytes forward
+| s++               Seek blocksize bytes forward
+| s[j*=]            List undo seek history (JSON, =list, *r2)
+| s/ DATA           Search for next occurrence of 'DATA'
+| s/x 9091          Search for next occurrence of \x90\x91
+| s.hexoff          Seek honoring a base from core-&gt;offset
+| sa [[+-]a] [asz]  Seek asz (or bsize) aligned to addr
+| sb                Seek aligned to bb start
+| sC[?] string      Seek to comment matching given string
+| sf                Seek to next function (f-&gt;addr+f-&gt;size)
+| sf function       Seek to address of specified function
+| sg/sG             Seek begin (sg) or end (sG) of section or file
+| sl[?] [+-]line    Seek to line
+| sn/sp             Seek next/prev scr.nkey
+| so [N]            Seek to N next opcode(s)
+| sr pc             Seek to register
+[0x08048430]&gt;
+</code></pre>
+</div>
+<h3 id="starting-the-disassembly">Starting the disassembly</h3>
+<p><code class="highlighter-rouge">aa</code>, which stands for <code class="highlighter-rouge">analyze all</code> will search through the binary and analyze its symbols.
+It’s commonly said that the only GUI you need is CLI, but if you prefer a visual mode, hit <code class="highlighter-rouge">v</code> for Radare2’s visual mode.
+<code class="highlighter-rouge">p</code> can be used to cycle between different view modes.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>*hex, the hexadecimal view
+*disasm, the disassembly listing
+*debug, the debugger
+*words, the word-hexidecimal view
+*buf, the C-formatted buffer
+*annotated, the annotated hexdump
+</code></pre>
+</div>
+
+<p>Scrolling through the binary, we find the main function.</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>            ;-- main:                                                                                                                                 
+/ (fcn) sym.main 133                                                                                                                                  
+|   sym.main ();                                                                                                                                      
+|           ; var int local_4h @ esp+0x4                                                                                                              
+|           ; var int local_13h @ esp+0x13                                                                                                            
+|           ; var int local_2ch @ esp+0x2c                                                                                                            
+|              ; DATA XREF from 0x08048447 (entry0)                                                                                                   
+|           0x080484e4      55             push ebp                                                                                                   
+|           0x080484e5      89e5           mov ebp, esp                                                                                               
+|           0x080484e7      83e4f0         and esp, 0xfffffff0                                                                                        
+|           0x080484ea      83ec30         sub esp, 0x30               ; '0'                                                                          
+|           0x080484ed      65a114000000   mov eax, dword gs:[0x14]    ; [0x14:4]=1                                                                   
+|           0x080484f3      8944242c       mov dword [esp + local_2ch], eax                                                                           
+|           0x080484f7      31c0           xor eax, eax                                                                                               
+|              ; JMP XREF from 0x08048560 (sym.main)                                                                                                  
+|       .-&gt; 0x080484f9      b840860408     mov eax, str.Enter_password: ; "Enter password: " @ 0x8048640                                              
+|       |   0x080484fe      890424         mov dword [esp], eax                                                                                       
+|       |   0x08048501      e8cafeffff     call sym.imp.printf         ;[1]; int printf(const char *format)                                           
+|       |   0x08048506      b851860408     mov eax, 0x8048651          ; "%s"                                                                         
+|       |   0x0804850b      8d542413       lea edx, [esp + local_13h]  ; 0x13                                                                         
+|       |   0x0804850f      89542404       mov dword [esp + local_4h], edx                                                                            
+|       |   0x08048513      890424         mov dword [esp], eax                                                                                       
+|       |   0x08048516      e805ffffff     call sym.imp.__isoc99_scanf ;[2]; int scanf(const char *format)                                            
+|       |   0x0804851b      8d442413       lea eax, [esp + local_13h]  ; 0x13                                                                         
+|       |   0x0804851f      89442404       mov dword [esp + local_4h], eax                                                                            
+|       |   0x08048523      c7042424a004.  mov dword [esp], str.g00dJ0B_ ; [0x804a024:4]=0x64303067 ; LEA obj.pass.1685 ; "g00dJ0B!" @ 0x804a024      
+|       |   0x0804852a      e891feffff     call sym.imp.strcmp         ;[3]; int strcmp(const char *s1, const char *s2)                               
+|       |   0x0804852f      85c0           test eax, eax                                                                                              
+|      ,==&lt; 0x08048531      7521           jne 0x8048554               ;[4]                                                                           
+|      ||   0x08048533      c70424548604.  mov dword [esp], str.Congrats_ ; [0x8048654:4]=0x676e6f43 ; LEA str.Congrats_ ; "Congrats!" @ 0x8048654    
+
+	...
+
+</code></pre>
+</div>
+<p>You can also use <code class="highlighter-rouge">VV</code> to get an ascii call graph.
+Hit <code class="highlighter-rouge">q</code> to go back.</p>
+
+<p>As we can see above, <code class="highlighter-rouge">mov dword [esp], str.g00dJ0B_</code> places the string <code class="highlighter-rouge">g00dJ0B!</code> into the <code class="highlighter-rouge">esp</code> register before calling <code class="highlighter-rouge">strcmp</code>.
+We do not want to take the jump at <code class="highlighter-rouge">0x08048531</code> to <code class="highlighter-rouge">0x8048554</code>.</p>
+
+<p>In the x86 assembly language, the TEST instruction performs a bitwise AND on two operands. The flags SF, ZF, PF are modified while the result of the AND is discarded.</p>
+
+<p>The <code class="highlighter-rouge">ZF</code> will be set to 1 when the bitwise AND of the operands are zero (meaning that the operands are equal). The <code class="highlighter-rouge">SF</code> flag is set to the most significant bit result of this bitwise AND. The parity flag <code class="highlighter-rouge">PF</code> is set to the result of the bitwise XNOR of the least significant byte of the result ( 1 if the number of ones in the byte is even, 0 if odd).</p>
+
+<p>The <code class="highlighter-rouge">JE</code> (Jump if equal) instruction tests the <code class="highlighter-rouge">ZF</code> and jumps if the flag is set. It’s also an alias of <code class="highlighter-rouge">JZ</code> (Jump if zero).
+Here, <code class="highlighter-rouge">JNE</code> (Jump not equal) instruction jumps when the the flag is <em>not</em> set (not equal).
+For our program to <em>not</em> take the jump, our outcome of <code class="highlighter-rouge">test eax, eax</code> has to set <code class="highlighter-rouge">ZF</code> to <code class="highlighter-rouge">0</code>.</p>
+
+<p>In other words, for the operand to be equal to <code class="highlighter-rouge">g00dJ0B!</code>.
+At this point, we have already solved the crackme, but lets go on to some less important details.</p>
+
+<p>We see a call to scanf a few lines above the <code class="highlighter-rouge">strcmp</code>. We know that our input comes from somewhere around here.
+It’s actually difficult to find which registers <code class="highlighter-rouge">strcmp</code> and <code class="highlighter-rouge">scanf</code> interacts with because these are higher-level function calls, and it is possible that different compilers, optimization levels, etc will use a different set of instruction to evaluate the function call.</p>
+
+<p>The <code class="highlighter-rouge">lea</code> instruction reads the address at <code class="highlighter-rouge">[esp + local_13h]</code> and stores it the address (not the variable stored at the address) into <code class="highlighter-rouge">eax</code>.
+The <code class="highlighter-rouge">mov</code> instruction then reads a variable stored at a address, in this case the address stored inside <code class="highlighter-rouge">eax</code>, and stores it into <code class="highlighter-rouge">[esp + local_4h]</code>.
+<code class="highlighter-rouge">strcmp</code> is then called.</p>
+
+<p>Cool. So lets try out the password we just got.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>lim1ts@thesignal:~/Downloads/challenges$ ./crackme0x00a
+Enter password: g00dJ0B!
+Congrats!
+</code></pre>
+</div>
+
+<p>Awesome.</p>
+
+<h2 id="onwards-to-crackme0x00b">Onwards to crackme0x00b!</h2>
+
+<p>You can get a visual graph view by doing <code class="highlighter-rouge">VV</code>.
+Similarly, “p” can be used here to cycle between view modes differing in verbosity.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>mov dword [esp], obj.pass.1964
+call sym.imp.wcscmp ;[gd]
+</code></pre>
+</div>
+<p>Huh. Looks like we’re not using <code class="highlighter-rouge">strcmp</code> anymore.
+What does <code class="highlighter-rouge">wcscmp</code> do?</p>
+
+<p>From the <a href="http://www.cplusplus.com/reference/cwchar/wcscmp/">reference</a>:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>Compare two strings
+Compares the C wide string wcs1 to the C wide string wcs2.
+</code></pre>
+</div>
+
+<p>A wide string is</p>
+
+<p>Hmm. So what originally looks like a “w” in the compare could be something else.
+At this point entering “w” into our problem gives us an incorrect answer.
+Lets see what else is there.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[0x08048494]&gt; s 0x804a040
+[0x0804a040]&gt; x
+- offset -   0 1  2 3  4 5  6 7  8 9  A B  C D  E F  0123456789ABCDEF
+0x0804a040  7700 0000 3000 0000 7700 0000 6700 0000  w...0...w...g...
+0x0804a050  7200 0000 6500 0000 6100 0000 7400 0000  r...e...a...t...
+0x0804a060  0000 0000 4743 433a 2028 5562 756e 7475  ....GCC: (Ubuntu
+0x0804a070  2f4c 696e 6172 6f20 342e 362e 312d 3975  /Linaro 4.6.1-9u
+0x0804a080  6275 6e74 7533 2920 342e 362e 3100 002e  buntu3) 4.6.1...
+0x0804a090  7379 6d74 6162 002e 7374 7274 6162 002e  symtab..strtab..
+0x0804a0a0  7368 7374 7274 6162 002e 696e 7465 7270  shstrtab..interp
+0x0804a0b0  002e 6e6f 7465 2e41 4249 2d74 6167 002e  ..note.ABI-tag..
+0x0804a0c0  6e6f 7465 2e67 6e75 2e62 7569 6c64 2d69  note.gnu.build-i
+0x0804a0d0  6400 2e67 6e75 2e68 6173 6800 2e64 796e  d..gnu.hash..dyn
+0x0804a0e0  7379 6d00 2e64 796e 7374 7200 2e67 6e75  sym..dynstr..gnu
+0x0804a0f0  2e76 6572 7369 6f6e 002e 676e 752e 7665  .version..gnu.ve
+0x0804a100  7273 696f 6e5f 7200 2e72 656c 2e64 796e  rsion_r..rel.dyn
+0x0804a110  002e 7265 6c2e 706c 7400 2e69 6e69 7400  ..rel.plt..init.
+0x0804a120  2e74 6578 7400 2e66 696e 6900 2e72 6f64  .text..fini..rod
+0x0804a130  6174 6100 2e65 685f 6672 616d 655f 6864  ata..eh_frame_hd
+[0x0804a040]&gt; 
+</code></pre>
+</div>
+<p>Ah! 
+Trying <code class="highlighter-rouge">w0wgreat</code> gives us the correct answer.
+Awesome!</p>
+
+<p>I’m going to have to stop here for now - stay tuned for more!
+[repo]:    https://github.com/lim1ts</p>
+
+
+<div id="disqus_thread"></div>
+<script>
+
+var disqus_config = function () {
+
+this.page.url = "/main/2017/05/28/Reversing-Basics.html";  // Replace PAGE_URL with your page's canonical URL variable
+this.page.identifier = "/main/2017/05/28/Reversing-Basics"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://lim1ts-github.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+      <footer class="site-footer">
+  <span class="site-footer-owner"><a href="http://localhost:4000">lim1ts' homepage</a> is maintained by <a href="https://github.com/lim1ts">TS Lim</a>.</span>
+  <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+</footer>
+
+
+    </section>
+
+  </body>
+</html>
