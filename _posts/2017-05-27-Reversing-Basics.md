@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[0x] Basic Reversing with Radare2 and GDB Peda."
+title:  "[0x0:Crackme] Basic Reversing with Radare2 and GDB Peda."
 comments: true
 date:   2017-05-27 22:50:00
 categories: main

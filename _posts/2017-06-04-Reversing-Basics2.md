@@ -11,19 +11,19 @@ categories: main
 ## [crackme0x01]
 So lets look at what we have in the main function.
 ```
-                                                  |    ; [0x8048541:4]=0x73736150                   |
-                                                  |    ; LEA str.Password:                          |
-                                                  |    ; "Password: " @ 0x8048541                   |
-                                                  | mov dword [esp], str.Password:                  |
-                                                  | call sym.imp.printf ;[ga]                       |
-                                                  | lea eax, [ebp - local_4h]                       |
-                                                  | mov dword [esp + local_4h_2], eax               |
-                                                  |    ; [0x804854c:4]=0x49006425                   |
-                                                  |    ; "%d"                                       |
-                                                  | mov dword [esp], 0x804854c                      |
-                                                  | call sym.imp.scanf ;[gb]                        |
-                                                  |    ; [0x149a:4]=0x2ec0804                       |
-                                                  | cmp dword [ebp - local_4h], 0x149a              |
+|    ; [0x8048541:4]=0x73736150                   |
+|    ; LEA str.Password:                          |
+|    ; "Password: " @ 0x8048541                   |
+| mov dword [esp], str.Password:                  |
+| call sym.imp.printf ;[ga]                       |
+| lea eax, [ebp - local_4h]                       |
+| mov dword [esp + local_4h_2], eax               |
+|    ; [0x804854c:4]=0x49006425                   |
+|    ; "%d"                                       |
+| mov dword [esp], 0x804854c                      |
+| call sym.imp.scanf ;[gb]                        |
+|    ; [0x149a:4]=0x2ec0804                       |
+| cmp dword [ebp - local_4h], 0x149a              |
 ```
 In the `scanf` call, it appears that `%d` is passed into the function.
 So our password must be a number. 
@@ -169,7 +169,7 @@ These values are `0x5a` and `0x1ec`.
 
 Lets look at the main function again and see where we can help.
 
-```
+                                                  ```
                                                   | mov dword [ebp - local_8h], 0x5a                |
                                                   | mov dword [ebp - local_ch], 0x1ec               |
                                                   | mov edx, dword [ebp - local_ch]                 |
@@ -183,7 +183,7 @@ Lets look at the main function again and see where we can help.
                                                   | mov eax, dword [ebp - local_4h]                 |
                                                   | mov dword [esp], eax 			    |
                                                   | 0x0804850c e85dffffff     call sym.test ;[gc]   |
-```
+                                                  ``` 
 So the input that we control - `ebp - 0x4 ` is being used 
 The value inside `eax` is then moved into the address of `esp`.
 This means that whatever `eax` has been pointing to, now `esp` points to it as well.
