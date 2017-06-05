@@ -1,0 +1,238 @@
+<h4 id="continuing-on-today-we-will-try-to-finish-crackme0x01---crackme0x03">Continuing on, today we will try to finish Crackme0x01 - Crackme0x03.</h4>
+
+<h2 id="crackme0x01">[crackme0x01]</h2>
+<p>So lets look at what we have in the main function.</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>                                                  |    ; [0x8048541:4]=0x73736150                   |
+                                                  |    ; LEA str.Password:                          |
+                                                  |    ; "Password: " @ 0x8048541                   |
+                                                  | mov dword [esp], str.Password:                  |
+                                                  | call sym.imp.printf ;[ga]                       |
+                                                  | lea eax, [ebp - local_4h]                       |
+                                                  | mov dword [esp + local_4h_2], eax               |
+                                                  |    ; [0x804854c:4]=0x49006425                   |
+                                                  |    ; "%d"                                       |
+                                                  | mov dword [esp], 0x804854c                      |
+                                                  | call sym.imp.scanf ;[gb]                        |
+                                                  |    ; [0x149a:4]=0x2ec0804                       |
+                                                  | cmp dword [ebp - local_4h], 0x149a              |
+</code></pre>
+</div>
+<p>In the <code class="highlighter-rouge">scanf</code> call, it appears that <code class="highlighter-rouge">%d</code> is passed into the function.
+So our password must be a number.</p>
+
+<p>Below, we see that the <code class="highlighter-rouge">cmp</code> looks for whatever is equal to 0x149a.
+What is 0x149a in decimal?</p>
+
+<p>Outside of Radare2, we can use <code class="highlighter-rouge">rax2 0x149a</code> to find out.
+Inside, we can use ‘? 0x149a` to display the various representations of 0x149a.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>lim1ts@thesignal:~/Downloads/challenges$ rax2 0x149a
+5274
+lim1ts@thesignal:~/Downloads/challenges$ ./crackme0x01
+IOLI Crackme Level 0x01
+Password: 5274
+Password OK :)
+</code></pre>
+</div>
+
+<p>Sure enough, 5274 is our answer.</p>
+
+<h2 id="crackme0x02">[crackme0x02]</h2>
+<p>We spot a <code class="highlighter-rouge">JNE</code> instruction at the jump location. Once again our <code class="highlighter-rouge">cmp eax, dword [ebp - local_ch]</code> has to be the same.
+This time we get a success when we <em>don’t</em> make the jump.</p>
+
+<p>Observe that there’s a lot of MOV around. That’s alright.
+But notice two new instructions - <code class="highlighter-rouge">ADD</code> and <code class="highlighter-rouge">IMUL</code>.</p>
+
+<p><code class="highlighter-rouge">ADD</code> is pretty straight forward; it just adds one register or immediate(hard coded constant) into the other.
+The calling convention here dictates that we will add <code class="highlighter-rouge">edx</code> into <code class="highlighter-rouge">eax</code>… <em>wait</em>.</p>
+
+<p>It’s adding into <code class="highlighter-rouge">dword[eax]</code>? What’s that supposed to mean?</p>
+
+<p>First let’s talk about <code class="highlighter-rouge">dword</code> - we kinda took this for granted.
+The ‘d’ in <em>dword</em> stands for <em>double</em>.
+A <em>word</em> is 16 bits long, so a dword is 32 bits.</p>
+
+<p>The size directives <code class="highlighter-rouge">BYTE PTR</code>, <code class="highlighter-rouge">WORD PTR</code> and <code class="highlighter-rouge">DWORD PTR</code> tells the machine which location the operand should operate on.
+For example, consider <code class="highlighter-rouge">mov [ebx], 2</code>.</p>
+
+<p>It it difficult to know which area to move the value <code class="highlighter-rouge">2</code> into. The assembler must be given a size directive to understand where this value would go to, since it can move the 32-bit, 16-bit or 8-bit representation of 2 into the register.</p>
+
+<p>The size directives BYTE PTR, WORD PTR, and DWORD PTR serve this purpose, indicating sizes of 1, 2, and 4 bytes respectively.</p>
+
+<h5 id="from-this-guide-to-x86-assembly">From <a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html">this guide to x86 assembly</a>.</h5>
+<div class="highlighter-rouge"><pre class="highlight"><code>For example:
+
+    mov BYTE PTR [ebx], 2 	; Move 2 into the single byte at the address stored in EBX.
+    mov WORD PTR [ebx], 2 	; Move the 16-bit integer representation of 2 into the 2 bytes starting at the address in EBX.
+    mov DWORD PTR [ebx], 2     	; Move the 32-bit integer representation of 2 into the 4 bytes starting at the address in EBX.
+</code></pre>
+</div>
+
+<p>What <code class="highlighter-rouge">IMUL</code> does in this context <code class="highlighter-rouge">(imul eax, dword [ebp - local_8h])</code> is to multiple <code class="highlighter-rouge">eax</code> by the 32-bit representation of the <em>value</em> held by <code class="highlighter-rouge">EBP-local_8h</code>, and stores the result in <code class="highlighter-rouge">eax</code>.</p>
+
+<p>Now that we’re all clear, lets take it from the top, this time with the help of GDB.</p>
+
+<p>Let’s break right after the <code class="highlighter-rouge">scanf</code>, at <code class="highlighter-rouge">0x0804842b</code> by doing <code class="highlighter-rouge">b \*0x0804842b</code>.
+Use <code class="highlighter-rouge">ni</code> to step through the instructions.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>=&gt; 0x804842b &lt;main+71&gt;:	mov    DWORD PTR [ebp-0x8],0x5a
+   0x8048432 &lt;main+78&gt;:	mov    DWORD PTR [ebp-0xc],0x1ec
+</code></pre>
+</div>
+<p>P.S: the PTR forces expression to be treated as a pointer of specific type (DWORD).
+It appears in GDB but not in Radare2. Think of it as a typecast, like in C.</p>
+
+<p>Step through these instructions, and observe that the values are moved into their repective memory regions.
+Use “x/w” to do so.
+Where <code class="highlighter-rouge">x</code> means to print some intger as a hexadecimal, and <code class="highlighter-rouge">w</code> is the size (4 bytes).</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>gdb-peda$ x/w $ebp-0x8
+0xffffce80:	0x0000005a
+gdb-peda$ x/w $ebp-0xc
+0xffffce7c:	0x000001ec
+</code></pre>
+</div>
+
+<p>Continuing on…</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>0x804843c &lt;main+88&gt;:	lea    eax,[ebp-0x8]
+0x804843f &lt;main+91&gt;:	add    DWORD PTR [eax],edx
+</code></pre>
+</div>
+<p>Looks like we’re going to take the <em>address</em> of <code class="highlighter-rouge">ebp-0x8</code> and store it into eax.
+Then, we’re going to take the value of <code class="highlighter-rouge">edx</code> and add it to the <code class="highlighter-rouge">DWORD PTR [EAX]</code>.</p>
+
+<p>What does this do?
+Let’s step past it.</p>
+
+<p><code class="highlighter-rouge">EAX</code> now takes a value of <code class="highlighter-rouge">0x246</code>, which is the sum of <code class="highlighter-rouge">0x5a</code> and <code class="highlighter-rouge">0x1ec</code>.
+<em>But hey - take a look at <code class="highlighter-rouge">ebp-0x8</code>. It also takes the value of <code class="highlighter-rouge">0x246</code>!</em></p>
+
+<p>This is because we didn’t just move the value of <code class="highlighter-rouge">ebp-0x8</code> in, but we loaded its address and did the <code class="highlighter-rouge">ADD</code> on it.
+Hence, according to GDB, the status of the <code class="highlighter-rouge">EAX</code> register is:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[----------------------------------registers-----------------------------------]
+EAX: 0xffffce80 --&gt; 0x246
+</code></pre>
+</div>
+<p>Ah.
+The next instruction then does a <code class="highlighter-rouge">mov eax, DWORD [ebp - 0x8]</code>. This moves the value <code class="highlighter-rouge">0x246</code> into eax.
+Giving us….
+`
+EAX: 0x246 
+`</p>
+
+<p>Next, <code class="highlighter-rouge">IMUL</code>. We expect <code class="highlighter-rouge">EAX</code>’s value to be multiplied by <code class="highlighter-rouge">DWORD [ebp - 0x8]</code>, which is essentially a square.
+Later, the variable that we typed in through <code class="highlighter-rouge">scanf</code> will be loaded into <code class="highlighter-rouge">eax</code> and compared against it.
+At this point of time, you might have realized that there was no need to go through all this, and everything could have been done with GDB actually.</p>
+
+<p>All you had to do was to break right before the compare, and do a simple:</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>gdb-peda$ x $ebp-0xc
+0xffffce7c:	0x00052b24
+
+...
+
+lim1ts@thesignal:~/Downloads/challenges$ ./crackme0x02
+IOLI Crackme Level 0x02
+Password: 338724
+Password OK :)
+
+</code></pre>
+</div>
+
+<p>Awesome!</p>
+
+<h2 id="crackme0x03">[Crackme0x03]</h2>
+<p>Now this one is a little bit tricky.
+You don’t see any signs of “Invalid password” or “Password ok” anywhere! 
+This is because they are hidden within the <code class="highlighter-rouge">test</code> function and obfuscated only to be “unravelled” in the <code class="highlighter-rouge">shift</code> function.
+Lets ignore that for now.</p>
+
+<p>The <code class="highlighter-rouge">main</code> program looks quite simple to the previous problem. 
+Our goal is the make this jump inside the <code class="highlighter-rouge">test</code> function succeed.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>   0x8048474 &lt;test+6&gt;:	mov    eax,DWORD PTR [ebp+0x8]
+   0x8048477 &lt;test+9&gt;:	cmp    eax,DWORD PTR [ebp+0xc]
+=&gt; 0x804847a &lt;test+12&gt;:	je     0x804848a &lt;test+28&gt;
+</code></pre>
+</div>
+
+<p>The addition to <code class="highlighter-rouge">ebp</code> tells us that these values are taken from the Caller, which is <code class="highlighter-rouge">main</code>, instead of the local function.
+These values are <code class="highlighter-rouge">0x5a</code> and <code class="highlighter-rouge">0x1ec</code>.</p>
+
+<p>Lets look at the main function again and see where we can help.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>                                                  | mov dword [ebp - local_8h], 0x5a                |
+                                                  | mov dword [ebp - local_ch], 0x1ec               |
+                                                  | mov edx, dword [ebp - local_ch]                 |
+                                                  | lea eax, [ebp - local_8h]                       |
+                                                  | add dword [eax], edx                            |
+                                                  | mov eax, dword [ebp - local_8h]                 |
+                                                  | imul eax, dword [ebp - local_8h]                |
+                                                  | mov dword [ebp - local_ch], eax                 |
+                                                  | mov eax, dword [ebp - local_ch]                 |
+                                                  | mov dword [esp + local_4h_2], eax               |
+                                                  | mov eax, dword [ebp - local_4h]                 |
+                                                  | mov dword [esp], eax 			    |
+                                                  | 0x0804850c e85dffffff     call sym.test ;[gc]   |
+</code></pre>
+</div>
+<p>So the input that we control - <code class="highlighter-rouge">ebp - 0x4 </code> is being used 
+The value inside <code class="highlighter-rouge">eax</code> is then moved into the address of <code class="highlighter-rouge">esp</code>.
+This means that whatever <code class="highlighter-rouge">eax</code> has been pointing to, now <code class="highlighter-rouge">esp</code> points to it as well.
+<code class="highlighter-rouge">esp</code> now points to our input.</p>
+
+<p>In the test function we see:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>   0x804846e &lt;test&gt;:	push   ebp
+   0x804846f &lt;test+1&gt;:	mov    ebp,esp
+   0x8048471 &lt;test+3&gt;:	sub    esp,0x8
+=&gt; 0x8048474 &lt;test+6&gt;:	mov    eax,DWORD PTR [ebp+0x8]
+   0x8048477 &lt;test+9&gt;:	cmp    eax,DWORD PTR [ebp+0xc]
+   0x804847a &lt;test+12&gt;:	je     0x804848a &lt;test+28&gt;
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">ebp</code> is being changed by <code class="highlighter-rouge">esp</code>!
+It is then subtracted by a <code class="highlighter-rouge">0x8</code>.</p>
+
+<p>That is, after the calling conventions where the caller’s <code class="highlighter-rouge">esp</code> is now the callee’s <code class="highlighter-rouge">ebp</code>.
+The <code class="highlighter-rouge">esp</code> is then subtracted again to make space for callee’s local variables.</p>
+
+<p>This is seen in:</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>   0x804846e &lt;test&gt;:    push   ebp       ; save old frame pointer
+   0x804846f &lt;test+1&gt;:  mov    ebp,esp   ; get new frame pointer
+   0x8048471 &lt;test+3&gt;:  sub    esp,0x8   ; reserve place for locals.
+</code></pre>
+</div>
+
+<p>Okay… so where does EBP point to right now?
+The stack looks like this now:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>0000| 0xffffce50 --&gt; 0xffffce84 --&gt; 0x1
+0004| 0xffffce54 --&gt; 0xf7ffd918 --&gt; 0x0
+0008| 0xffffce58 --&gt; 0xffffce88 --&gt; 0x0       &lt;----- EBP points here! Remember, its the BASE pointer.
+0012| 0xffffce5c --&gt; 0x8048511 (&lt;main+121&gt;:     mov    eax,0x0)
+0016| 0xffffce60 --&gt; 0x1 
+0020| 0xffffce64 --&gt; 0x52b24
+</code></pre>
+</div>
+<p>The next 2 instructions shows that we will be performing a <code class="highlighter-rouge">cmp</code> on <code class="highlighter-rouge">ebp + 0x8</code> and <code class="highlighter-rouge">ebp + 0xc</code>.
+These values are <code class="highlighter-rouge">0x1</code> (my entered value) and <code class="highlighter-rouge">0x52b24</code>.</p>
+
+<p>Huh, looks like that answer might be the same.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>lim1ts@thesignal:~/Downloads/challenges$ ./crackme0x03
+IOLI Crackme Level 0x03
+Password: 338724
+Password OK!!! :)
+</code></pre>
+</div>
+
+<p>Indeed!</p>
+
+<h3 id="afterword">Afterword</h3>
+
+<p>We didn’t look into the <code class="highlighter-rouge">shift</code> function this time, but I imagine such obfucastion techniques will become rather userful to understand in the times tocome. That being said, we have yet to look into the raw power of Radare2 yet.</p>
+
+<p>We will continue next time!</p>
+
