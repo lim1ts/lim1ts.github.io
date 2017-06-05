@@ -169,21 +169,22 @@ These values are `0x5a` and `0x1ec`.
 
 Lets look at the main function again and see where we can help.
 
-                                                  ```
-                                                  | mov dword [ebp - local_8h], 0x5a                |
-                                                  | mov dword [ebp - local_ch], 0x1ec               |
-                                                  | mov edx, dword [ebp - local_ch]                 |
-                                                  | lea eax, [ebp - local_8h]                       |
-                                                  | add dword [eax], edx                            |
-                                                  | mov eax, dword [ebp - local_8h]                 |
-                                                  | imul eax, dword [ebp - local_8h]                |
-                                                  | mov dword [ebp - local_ch], eax                 |
-                                                  | mov eax, dword [ebp - local_ch]                 |
-                                                  | mov dword [esp + local_4h_2], eax               |
-                                                  | mov eax, dword [ebp - local_4h]                 |
-                                                  | mov dword [esp], eax 			    |
-                                                  | 0x0804850c e85dffffff     call sym.test ;[gc]   |
-                                                  ``` 
+```
+| mov dword [ebp - local_8h], 0x5a                |
+| mov dword [ebp - local_ch], 0x1ec               |
+| mov edx, dword [ebp - local_ch]                 |
+| lea eax, [ebp - local_8h]                       |
+| add dword [eax], edx                            |
+| mov eax, dword [ebp - local_8h]                 |
+| imul eax, dword [ebp - local_8h]                |
+| mov dword [ebp - local_ch], eax                 |
+| mov eax, dword [ebp - local_ch]                 |
+| mov dword [esp + local_4h_2], eax               |
+| mov eax, dword [ebp - local_4h]                 |
+| mov dword [esp], eax 			          |
+| 0x0804850c e85dffffff     call sym.test ;[gc]   |
+``` 
+
 So the input that we control - `ebp - 0x4 ` is being used 
 The value inside `eax` is then moved into the address of `esp`.
 This means that whatever `eax` has been pointing to, now `esp` points to it as well.
