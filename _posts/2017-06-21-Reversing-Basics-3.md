@@ -2,7 +2,7 @@
 layout: post
 title:  "[0x2:Crackme] Basic Reversing with Radare2 and GDB Peda."
 comments: true
-date:   2017-01-10 12:15:00
+date:   2017-10-1 12:15:00
 categories: main
 ---
 #### Post was written on 28th June, but `crackme0x09` was completed only on `01/10` after I was crushed at two ctfs.
