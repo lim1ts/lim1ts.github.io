@@ -1,51 +1,43 @@
----
-layout: post
-title:  "[0x2:Crackme] Basic Reversing with Radare2 and GDB Peda."
-comments: true
-date:   2017-01-10 12:15:00
-categories: main
----
-#### Post was written on 28th June, but `crackme0x09` was completed only on `01/10` after I was crushed at two ctfs.
-Note: I don't have a complete solution for 0x09, and I received help in the form of reading [WereW's writeup](https://werew.tk/article/11/ioli-crackme0x0)
+<h4 id="post-was-written-on-28th-june-but-crackme0x09-was-completed-only-on-0110-after-i-was-crushed-at-two-ctfs">Post was written on 28th June, but <code class="highlighter-rouge">crackme0x09</code> was completed only on <code class="highlighter-rouge">01/10</code> after I was crushed at two ctfs.</h4>
+<p>Note: I don’t have a complete solution for 0x09, and I received help in the form of reading <a href="https://werew.tk/article/11/ioli-crackme0x0">WereW’s writeup</a></p>
 
-CrossCTF: 10th Qualifiying. 14th Finals.
-HackIt CTF: 82nd.
+<p>CrossCTF: 10th Qualifiying. 14th Finals.
+HackIt CTF: 82nd.</p>
 
-We didn't perform very well, and its apparent that my skills are severly lacking in all aspects. My current documentation with my progress using this blog is also, quite frankly, terrible. I will look forward to updating the blog to be more readable and easier to work with, as well as continue to refine my skillsets in the RE, Pwn and Web areas.
-### Crackme0x04
+<p>We didn’t perform very well, and its apparent that my skills are severly lacking in all aspects. My current documentation with my progress using this blog is also, quite frankly, terrible. I will look forward to updating the blog to be more readable and easier to work with, as well as continue to refine my skillsets in the RE, Pwn and Web areas.</p>
+<h3 id="crackme0x04">Crackme0x04</h3>
 
-![r2 screenshot](http://i.imgur.com/JM7asBz.png)
-Hmm. `JAE`. We haven't seen that one before.
-#### JAE
-```
-Jump if Above or Equal (unsigned comparison)
+<p><img src="http://i.imgur.com/JM7asBz.png" alt="r2 screenshot" />
+Hmm. <code class="highlighter-rouge">JAE</code>. We haven’t seen that one before.</p>
+<h4 id="jae">JAE</h4>
+<div class="highlighter-rouge"><pre class="highlight"><code>Jump if Above or Equal (unsigned comparison)
 
 jae loc
 
 CF = 0 or ZF = 1 
-```
-Remember that back when `cmp` was first introduced to us, we know that it performs a _bitwise AND_ operation with the two operands.
-It will modify the flags `ZF=1` iff the result of the operation is 0 (i.e, the operands are equal).
+</code></pre>
+</div>
+<p>Remember that back when <code class="highlighter-rouge">cmp</code> was first introduced to us, we know that it performs a <em>bitwise AND</em> operation with the two operands.
+It will modify the flags <code class="highlighter-rouge">ZF=1</code> iff the result of the operation is 0 (i.e, the operands are equal).</p>
 
-We don't want to take the jump, so we just need to set our argument to whatever `dword [ebp - local_ch]` is NOT.
+<p>We don’t want to take the jump, so we just need to set our argument to whatever <code class="highlighter-rouge">dword [ebp - local_ch]</code> is NOT.</p>
 
-That seems to work fine, however we see later on that there is a `cmp dword [ebp - local_8h], 0xf`.
-Do we actually control that local variable?
+<p>That seems to work fine, however we see later on that there is a <code class="highlighter-rouge">cmp dword [ebp - local_8h], 0xf</code>.
+Do we actually control that local variable?</p>
 
-At this point you can actually enter GDB and realise that what the program really is doing is just adding each digit together, and all combinations that reach 16 as a sum would work. But lets look at what the instructions are doing.
+<p>At this point you can actually enter GDB and realise that what the program really is doing is just adding each digit together, and all combinations that reach 16 as a sum would work. But lets look at what the instructions are doing.</p>
 
-```
-| 0x080484a8 8b45f4         mov eax, dword [ebp - local_ch]    // Moving Local variable _CH into eax. (turns out to be zero)
+<div class="highlighter-rouge"><pre class="highlight"><code>| 0x080484a8 8b45f4         mov eax, dword [ebp - local_ch]    // Moving Local variable _CH into eax. (turns out to be zero)
 | 0x080484ab 034508         add eax, dword [ebp + arg_8h]      // Then we add our argument to it. !This means we're offsetting it by 0!
 | 0x080484ae 0fb600         movzx eax, byte [eax]              // movzx is basically moving with zero padded.
 							       // So we the byte size of [eax] into eax. This means the first digit.
-| 0x080484b1 8845f3         mov byte [ebp - local_dh], al      // Then we move the lowest 1 byte into variable _DH. (Also first digit)  >--+
+| 0x080484b1 8845f3         mov byte [ebp - local_dh], al      // Then we move the lowest 1 byte into variable _DH. (Also first digit)  &gt;--+
 | 0x080484b4 8d45fc         lea eax, [ebp - local_4h]          // And load the address of variable _4H into eax.		           |
 | 0x080484b7 89442408       mov dword [esp + local_8h_2], eax  // Which is then moved into local variable _8H_2.		           |
 |    ; [0x8048638:4]=0x50006425                                									           |
 |    ; "%d"                                                    									           |
 | 0x080484bb c74424043886.  mov dword [esp + local_4h_2], ,0x8048638  // just '%d"						           |
-| 0x080484c3 8d45f3         lea eax, [ebp - local_dh]          // Looks like we're now putting the address of our first Digit here. <------+
+| 0x080484c3 8d45f3         lea eax, [ebp - local_dh]          // Looks like we're now putting the address of our first Digit here. &lt;------+
 | 0x080484c6 890424         mov dword [esp], eax               // Then mov-ing it to [esp]? Preparing for a function call huh.
 | 0x080484c9 e8d6feffff     call sym.imp.sscanf ;[ge]          // What this scanf call does is to write the first digit into the address.
 							       // The address it writes to belong to local variable _4H.
@@ -55,44 +47,42 @@ At this point you can actually enter GDB and realise that what the program reall
 |    ; [0xf:4]=0x3000200                                        
 | 0x080484d6 837df80f       cmp dword [ebp - local_8h], 0xf    // and its value is compared to 15.
 | 0x080484da 7518           jne 0x80484f4 ;[gf] 	       // We need the value to be 15!
-```
-But we can't enter 15 as a single digit right?
-We need at least 2 digits, like "87".
+</code></pre>
+</div>
+<p>But we can’t enter 15 as a single digit right?
+We need at least 2 digits, like “87”.</p>
 
-What happens when the jump is taken?
+<p>What happens when the jump is taken?</p>
 
-```
-|0x080484f4 8d45f4         lea eax, [ebp - local_ch] 	       // Effective address of local variable _CH loaded into eax. Its 0.
+<div class="highlighter-rouge"><pre class="highlight"><code>|0x080484f4 8d45f4         lea eax, [ebp - local_ch] 	       // Effective address of local variable _CH loaded into eax. Its 0.
 |0x080484f7 ff00           inc dword [eax]		       // Now local variable _CH is incremented to 1.
 |0x080484f9 eb9d           jmp 0x8048498 ;[gd]		       // We then jump back to the start.
-```
+</code></pre>
+</div>
 
-[NOTE]: We refer to the variables as _*H, but they simply are $ebp/$esp - *Hex. The H just stands for hex.
- 
-We loop back again, but this time the offset is 1!
-This means we're going to be looking at the second digit.
+<p>We loop back again, but this time the offset is 1!
+This means we’re going to be looking at the second digit.
 Remember we still have our first digit in variable _8H. After the sscanf, we see that our second digit will be added.
-This means we're doing a digit-by-digit sum!
+This means we’re doing a digit-by-digit sum!</p>
 
-Also, realise that the block of function with `STRLEN` is just trying to make sure we don't read past the number of digits.
-And that each digit must be bigger than 0.
+<p>Also, realise that the block of function with <code class="highlighter-rouge">STRLEN</code> is just trying to make sure we don’t read past the number of digits.
+And that each digit must be bigger than 0.</p>
 
-### Crackme0x05
+<h3 id="crackme0x05">Crackme0x05</h3>
 
-Basically the same thing, just that the sum needs to be 16.
+<p>Basically the same thing, just that the sum needs to be 16.</p>
 
-At this point, I was getting kind of bored. So I decided to skip all the way to the final level. :x
+<p>At this point, I was getting kind of bored. So I decided to skip all the way to the final level. :x</p>
 
-### Crackme0x09
-We see that this is a stripped binary - meaning we can't do `pdf @ sym.main` here.
-In [stripped binaries](https://en.wikipedia.org/wiki/Stripped_binary), the debugging symbols are removed from the binary. The primary benefit to this is to save memory, but it also makes the binary more difficult to disassemble or reverse.
+<h3 id="crackme0x09">Crackme0x09</h3>
+<p>We see that this is a stripped binary - meaning we can’t do <code class="highlighter-rouge">pdf @ sym.main</code> here.
+In <a href="https://en.wikipedia.org/wiki/Stripped_binary">stripped binaries</a>, the debugging symbols are removed from the binary. The primary benefit to this is to save memory, but it also makes the binary more difficult to disassemble or reverse.</p>
 
-But hey, we can still see `main`.
+<p>But hey, we can still see <code class="highlighter-rouge">main</code>.</p>
 
-So lets do `pdf @ main`.
+<p>So lets do <code class="highlighter-rouge">pdf @ main</code>.</p>
 
-```
-[0x08048420]> pdf @ main
+<div class="highlighter-rouge"><pre class="highlight"><code>[0x08048420]&gt; pdf @ main
 / (fcn) main 120
 |   main (int arg_10h);
 |           ; var int local_78h @ ebp-0x78
@@ -133,39 +123,39 @@ So lets do `pdf @ main`.
 |           0x08048761      8b5dfc         mov ebx, dword [local_4h_2]
 |           0x08048764      c9             leave
 \           0x08048765      c3             ret
-```
-The rest of the functions are not so lucky - we see them as `fcn.*`.
+</code></pre>
+</div>
+<p>The rest of the functions are not so lucky - we see them as <code class="highlighter-rouge">fcn.*</code>.</p>
 
-The `main` function can be located in a stripped ELF binary is straightforward, no symbol information is required.
+<p>The <code class="highlighter-rouge">main</code> function can be located in a stripped ELF binary is straightforward, no symbol information is required.</p>
 
-The prototype for __libc_start_main is
-```
-int __libc_start_main(int (*main) (int, char**, char**), 
+<p>The prototype for __libc_start_main is</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>int __libc_start_main(int (*main) (int, char**, char**), 
                       int argc, 
                       char *__unbounded *__unbounded ubp_av, 
                       void (*init) (void), 
                       void (*fini) (void), 
                       void (*rtld_fini) (void), 
                       void (*__unbounded stack_end));
-```
+</code></pre>
+</div>
 
-The runtime memory address of `main()` is the argument `int`, which also means that it will be the last memory addressed saved on runtime stack prior to calling __libc_start_main is the memory address of main(), since arguments are pushed onto the runtime stack in the reverse order.
+<p>The runtime memory address of <code class="highlighter-rouge">main()</code> is the argument <code class="highlighter-rouge">int</code>, which also means that it will be the last memory addressed saved on runtime stack prior to calling __libc_start_main is the memory address of main(), since arguments are pushed onto the runtime stack in the reverse order.</p>
 
-We can also see an interesting function call - 
+<p>We can also see an interesting function call -</p>
 
-```
-[0x08048420]> afn do_something fcn.08048616
-[0x08048420]> pdf @ do_something 
-```
-`afn` renames the function to do_something in radare.
-Lets look at that function.
+<div class="highlighter-rouge"><pre class="highlight"><code>[0x08048420]&gt; afn do_something fcn.08048616
+[0x08048420]&gt; pdf @ do_something 
+</code></pre>
+</div>
+<p><code class="highlighter-rouge">afn</code> renames the function to do_something in radare.
+Lets look at that function.</p>
 
-```
-|       .-> 0x08048636      8b4508         mov eax, dword [userInput]  ; [0x8:4]=-1 ; 8
+<div class="highlighter-rouge"><pre class="highlight"><code>|       .-&gt; 0x08048636      8b4508         mov eax, dword [userInput]  ; [0x8:4]=-1 ; 8
 |       |   0x08048639      890424         mov dword [esp], eax
 |       |   0x0804863c      e88ffdffff     call sym.imp.strlen         ; size_t strlen(const char *s)
 |       |   0x08048641      3945f0         cmp dword [count2], eax     ; [0x13:4]=-1 ; 19
-|      ,==< 0x08048644      734f           jae 0x8048695
+|      ,==&lt; 0x08048644      734f           jae 0x8048695
 |      ||   0x08048646      8b45f0         mov eax, dword [count2]
 |      ||   0x08048649      034508         add eax, dword [userInput]
 |      ||   0x0804864c      0fb600         movzx eax, byte [eax]
@@ -181,62 +171,62 @@ Lets look at that function.
 |      ||   0x08048671      8d45f4         lea eax, [count1]
 |      ||   0x08048674      0110           add dword [eax], edx
 |      ||   0x08048676      837df410       cmp dword [count1], 0x10    ; [0x10:4]=-1 ; 16
-|     ,===< 0x0804867a      7512           jne 0x804868e
+|     ,===&lt; 0x0804867a      7512           jne 0x804868e
 |     |||   0x0804867c      8b450c         mov eax, dword [arg_ch]     ; [0xc:4]=-1 ; 12
 |     |||   0x0804867f      89442404       mov dword [local_4h], eax
 |     |||   0x08048683      8b4508         mov eax, dword [userInput]  ; [0x8:4]=-1 ; 8
 |     |||   0x08048686      890424         mov dword [esp], eax
 |     |||   0x08048689      e8fbfeffff     call sub.sscanf_589         ; int sscanf(const char *s,
 |     ||!      ; JMP XREF from 0x0804867a (do_something)
-|     `---> 0x0804868e      8d45f0         lea eax, [count2]
+|     `---&gt; 0x0804868e      8d45f0         lea eax, [count2]
 |      ||   0x08048691      ff00           inc dword [eax]
-|      |`=< 0x08048693      eba1           jmp 0x8048636
+|      |`=&lt; 0x08048693      eba1           jmp 0x8048636
 |      |       ; JMP XREF from 0x08048644 (do_something)
-|      `--> 0x08048695      e8c3feffff     call sub.printf_55d         ; int printf(const char *format)
+|      `--&gt; 0x08048695      e8c3feffff     call sub.printf_55d         ; int printf(const char *format)
 |           0x0804869a      8b450c         mov eax, dword [arg_ch]     ; [0xc:4]=-1 ; 12
 |           0x0804869d      89442404       mov dword [local_4h], eax
 |           0x080486a1      8b45f8         mov eax, dword [local_8h]
 |           0x080486a4      890424         mov dword [esp], eax
 |           0x080486a7      e828feffff     call sub.strncmp_4d4        ; int strncmp(const char *s1, const char *s2, size_t n)
 |           0x080486ac      85c0           test eax, eax
-|       ,=< 0x080486ae      7438           je 0x80486e8
+|       ,=&lt; 0x080486ae      7438           je 0x80486e8
 |       |   0x080486b0      c745f0000000.  mov dword [count2], 0
 |       |      ; JMP XREF from 0x080486e6 (do_something)
-|      .--> 0x080486b7      837df009       cmp dword [count2], 9       ; [0x9:4]=-1 ; 9
-|     ,===< 0x080486bb      7f2b           jg 0x80486e8
+|      .--&gt; 0x080486b7      837df009       cmp dword [count2], 9       ; [0x9:4]=-1 ; 9
+|     ,===&lt; 0x080486bb      7f2b           jg 0x80486e8
 |     |||   0x080486bd      8b45f8         mov eax, dword [local_8h]
 |     |||   0x080486c0      83e001         and eax, 1
 |     |||   0x080486c3      85c0           test eax, eax
-|    ,====< 0x080486c5      751a           jne 0x80486e1
+|    ,====&lt; 0x080486c5      751a           jne 0x80486e1
 |    ||||   0x080486c7      8d836fe8ffff   lea eax, [ebx - 0x1791]
 |    ||||   0x080486cd      890424         mov dword [esp], eax
 |    ||||   0x080486d0      e80bfdffff     call sym.imp.printf         ; int printf(const char *format)
 |    ||||   0x080486d5      c70424000000.  mov dword [esp], 0
 |    ||||   0x080486dc      e82ffdffff     call sym.imp.exit           ; void exit(int status)
 |    ||!|      ; JMP XREF from 0x080486c5 (do_something)
-|    `----> 0x080486e1      8d45f0         lea eax, [count2]
+|    `----&gt; 0x080486e1      8d45f0         lea eax, [count2]
 |     |||   0x080486e4      ff00           inc dword [eax]
-|     |`==< 0x080486e6      ebcf           jmp 0x80486b7
+|     |`==&lt; 0x080486e6      ebcf           jmp 0x80486b7
 |     | |      ; JMP XREF from 0x080486ae (do_something)
 |     | |      ; JMP XREF from 0x080486bb (do_something)
-|     `-`-> 0x080486e8      83c424         add esp, 0x24               ; '$'
+|     `-`-&gt; 0x080486e8      83c424         add esp, 0x24               ; '$'
 |           0x080486eb      5b             pop ebx
 |           0x080486ec      5d             pop ebp
 \           0x080486ed      c3             ret
 
-```
+</code></pre>
+</div>
 
-We see two variables here at the start of the function.
-I've renamed them to `count1` and `count2` using `afvn <original_name> <new_name>`. (You need to seek to the function scope first.)
-The arguement has also been renamed to `userInput`.
+<p>We see two variables here at the start of the function.
+I’ve renamed them to <code class="highlighter-rouge">count1</code> and <code class="highlighter-rouge">count2</code> using <code class="highlighter-rouge">afvn &lt;original_name&gt; &lt;new_name&gt;</code>. (You need to seek to the function scope first.)
+The arguement has also been renamed to <code class="highlighter-rouge">userInput</code>.</p>
 
-Seeing the `inc dword[eax]` here, and seeing that it only reaches that branch because of a previous `jne`, we can guess that this is probably a `for loop`.
-From the use of `userInput`, we see that the shortened 8 bits are used to add into the whatever has been added in already.
-Hence, we deduce that `count1` is the char by char summation, and we need `count1` to be the sum of 16 - that sounds familiar!
-Looks like our target is to reach `call sub.sscanf_589`, now to see inside it:
+<p>Seeing the <code class="highlighter-rouge">inc dword[eax]</code> here, and seeing that it only reaches that branch because of a previous <code class="highlighter-rouge">jne</code>, we can guess that this is probably a <code class="highlighter-rouge">for loop</code>.
+From the use of <code class="highlighter-rouge">userInput</code>, we see that the shortened 8 bits are used to add into the whatever has been added in already.
+Hence, we deduce that <code class="highlighter-rouge">count1</code> is the char by char summation, and we need <code class="highlighter-rouge">count1</code> to be the sum of 16 - that sounds familiar!
+Looks like our target is to reach <code class="highlighter-rouge">call sub.sscanf_589</code>, now to see inside it:</p>
 
-```
-[0x08048616]> pdf @ sub.sscanf_589
+<div class="highlighter-rouge"><pre class="highlight"><code>[0x08048616]&gt; pdf @ sub.sscanf_589
 / (fcn) sub.sscanf_589 141
 |   sub.sscanf_589 (int arg_8h, int arg_9h, int arg_ch);
 |           ; var int local_ch @ ebp-0xc
@@ -264,64 +254,65 @@ Looks like our target is to reach `call sub.sscanf_589`, now to see inside it:
 |           0x080485c1      890424         mov dword [esp], eax
 |           0x080485c4      e80bffffff     call sub.strncmp_4d4        ; int strncmp(const char *s1, const char *s2, size_t n)
 |           0x080485c9      85c0           test eax, eax
-|       ,=< 0x080485cb      7443           je 0x8048610
+|       ,=&lt; 0x080485cb      7443           je 0x8048610
 |       |   0x080485cd      c745f4000000.  mov dword [local_ch], 0
 |       |      ; JMP XREF from 0x0804860e (sub.sscanf_589)
-|      .--> 0x080485d4      837df409       cmp dword [local_ch], 9     ; [0x9:4]=-1 ; 9
-|     ,===< 0x080485d8      7f36           jg 0x8048610
+|      .--&gt; 0x080485d4      837df409       cmp dword [local_ch], 9     ; [0x9:4]=-1 ; 9
+|     ,===&lt; 0x080485d8      7f36           jg 0x8048610
 |     |||   0x080485da      8b45f8         mov eax, dword [local_8h]
 |     |||   0x080485dd      83e001         and eax, 1
 |     |||   0x080485e0      85c0           test eax, eax
-|    ,====< 0x080485e2      7525           jne 0x8048609
+|    ,====&lt; 0x080485e2      7525           jne 0x8048609
 |    ||||   0x080485e4      8b83fcffffff   mov eax, dword [ebx - 4]
 |    ||||   0x080485ea      833801         cmp dword [eax], 1          ; [0x1:4]=-1 ; 1
-|   ,=====< 0x080485ed      750e           jne 0x80485fd
+|   ,=====&lt; 0x080485ed      750e           jne 0x80485fd
 |   |||||   0x080485ef      8d8361e8ffff   lea eax, [ebx - 0x179f]
 |   |||||   0x080485f5      890424         mov dword [esp], eax
 |   |||||   0x080485f8      e8e3fdffff     call sym.imp.printf         ; int printf(const char *format)
 |   |||!|      ; JMP XREF from 0x080485ed (sub.sscanf_589)
-|   `-----> 0x080485fd      c70424000000.  mov dword [esp], 0
+|   `-----&gt; 0x080485fd      c70424000000.  mov dword [esp], 0
 |    ||||   0x08048604      e807feffff     call sym.imp.exit           ; void exit(int status)
 |    ||!|      ; JMP XREF from 0x080485e2 (sub.sscanf_589)
-|    `----> 0x08048609      8d45f4         lea eax, [local_ch]
+|    `----&gt; 0x08048609      8d45f4         lea eax, [local_ch]
 |     |||   0x0804860c      ff00           inc dword [eax]
-|     |`==< 0x0804860e      ebc4           jmp 0x80485d4
+|     |`==&lt; 0x0804860e      ebc4           jmp 0x80485d4
 |     | |      ; JMP XREF from 0x080485cb (sub.sscanf_589)
 |     | |      ; JMP XREF from 0x080485d8 (sub.sscanf_589)
-|     `-`-> 0x08048610      83c414         add esp, 0x14
+|     `-`-&gt; 0x08048610      83c414         add esp, 0x14
 |           0x08048613      5b             pop ebx
 |           0x08048614      5d             pop ebp
 \           0x08048615      c3             ret
-```
+</code></pre>
+</div>
 
-From:
-```
-|           0x080485c4      e80bffffff     call sub.strncmp_4d4        ; int strncmp(const char *s1, const char *s2, size_t n)
+<p>From:</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>|           0x080485c4      e80bffffff     call sub.strncmp_4d4        ; int strncmp(const char *s1, const char *s2, size_t n)
 |           0x080485c9      85c0           test eax, eax
 |           0x080485cb      7443           je 0x8048610
-```
-We see that whatever sub.strncmp_4d4 returns, if it equals to 0 (test eax,eax. Remember that `TEST` sets the `ZF` when the `AND` is 0, and `JE` jumps if `ZF` is 0. Test does not save the result of the AND operation anywhere, but `CMP` subtracts the second operand from the first operand.), it will jump to the end and exit out.
+</code></pre>
+</div>
+<p>We see that whatever sub.strncmp_4d4 returns, if it equals to 0 (test eax,eax. Remember that <code class="highlighter-rouge">TEST</code> sets the <code class="highlighter-rouge">ZF</code> when the <code class="highlighter-rouge">AND</code> is 0, and <code class="highlighter-rouge">JE</code> jumps if <code class="highlighter-rouge">ZF</code> is 0. Test does not save the result of the AND operation anywhere, but <code class="highlighter-rouge">CMP</code> subtracts the second operand from the first operand.), it will jump to the end and exit out.</p>
 
-Lets take a look into it, and see what to supply so that the value it returns is not 0.
-In the lower half of the function,
-```
-|      ||   0x0804852a      e8d1feffff     call sym.imp.strncmp        ; int strncmp(const char *s1, const char *s2, size_t n)
+<p>Lets take a look into it, and see what to supply so that the value it returns is not 0.
+In the lower half of the function,</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>|      ||   0x0804852a      e8d1feffff     call sym.imp.strncmp        ; int strncmp(const char *s1, const char *s2, size_t n)
 |      ||   0x0804852f      85c0           test eax, eax
-|      |`=< 0x08048531      75ba           jne 0x80484ed
+|      |`=&lt; 0x08048531      75ba           jne 0x80484ed
 |      |    0x08048533      8b83fcffffff   mov eax, dword [ebx - 4]
 |      |    0x08048539      c70001000000   mov dword [eax], 1
 |      |    0x0804853f      c745f4010000.  mov dword [local_ch], 1
-|      |,=< 0x08048546      eb0c           jmp 0x8048554
+|      |,=&lt; 0x08048546      eb0c           jmp 0x8048554
 |      ||      ; JMP XREF from 0x080484fe (sub.strncmp_4d4)
-|      `--> 0x08048548      c70424ffffff.  mov dword [esp], 0xffffffff ; [0xffffffff:4]=-1 ; -1
+|      `--&gt; 0x08048548      c70424ffffff.  mov dword [esp], 0xffffffff ; [0xffffffff:4]=-1 ; -1
 |       |   0x0804854f      e8bcfeffff     call sym.imp.exit           ; void exit(int status)
 |       |      ; JMP XREF from 0x08048546 (sub.strncmp_4d4)
-|       `-> 0x08048554      8b45f4         mov eax, dword [local_ch]
-```
-We spot this. So whatever `sym.imp.strncmp` is for, if the result of this comparison is 0 (same) then we will get a value of `1` in `eax`.
+|       `-&gt; 0x08048554      8b45f4         mov eax, dword [local_ch]
+</code></pre>
+</div>
+<p>We spot this. So whatever <code class="highlighter-rouge">sym.imp.strncmp</code> is for, if the result of this comparison is 0 (same) then we will get a value of <code class="highlighter-rouge">1</code> in <code class="highlighter-rouge">eax</code>.</p>
 
-####At this point, I had a lot of help from WereW's writeup. I'm not sure how he realized that there was an environment variable constraint, but the rest of his solution are as follows: https://werew.tk/article/11/ioli-crackme0x09
+<p>####At this point, I had a lot of help from WereW’s writeup. I’m not sure how he realized that there was an environment variable constraint, but the rest of his solution are as follows: https://werew.tk/article/11/ioli-crackme0x09</p>
 
-It saddens me to realize that I have a lot more to learn when I overestimated myself and jumped forword 5 levels.
-This blogpost was completed on 1st October, 3 months late due to University work and CTFs.
+<p>It saddens me to realize that I have a lot more to learn when I overestimated myself and jumped forword 5 levels.
+This blogpost was completed on 1st October, 3 months late due to University work and CTFs.</p>
 

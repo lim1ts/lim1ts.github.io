@@ -2,19 +2,19 @@
 
 <h2 id="crackme0x01">[crackme0x01]</h2>
 <p>So lets look at what we have in the main function.</p>
-<div class="highlighter-rouge"><pre class="highlight"><code>                                                  |    ; [0x8048541:4]=0x73736150                   |
-                                                  |    ; LEA str.Password:                          |
-                                                  |    ; "Password: " @ 0x8048541                   |
-                                                  | mov dword [esp], str.Password:                  |
-                                                  | call sym.imp.printf ;[ga]                       |
-                                                  | lea eax, [ebp - local_4h]                       |
-                                                  | mov dword [esp + local_4h_2], eax               |
-                                                  |    ; [0x804854c:4]=0x49006425                   |
-                                                  |    ; "%d"                                       |
-                                                  | mov dword [esp], 0x804854c                      |
-                                                  | call sym.imp.scanf ;[gb]                        |
-                                                  |    ; [0x149a:4]=0x2ec0804                       |
-                                                  | cmp dword [ebp - local_4h], 0x149a              |
+<div class="highlighter-rouge"><pre class="highlight"><code>|    ; [0x8048541:4]=0x73736150                   |
+|    ; LEA str.Password:                          |
+|    ; "Password: " @ 0x8048541                   |
+| mov dword [esp], str.Password:                  |
+| call sym.imp.printf ;[ga]                       |
+| lea eax, [ebp - local_4h]                       |
+| mov dword [esp + local_4h_2], eax               |
+|    ; [0x804854c:4]=0x49006425                   |
+|    ; "%d"                                       |
+| mov dword [esp], 0x804854c                      |
+| call sym.imp.scanf ;[gb]                        |
+|    ; [0x149a:4]=0x2ec0804                       |
+| cmp dword [ebp - local_4h], 0x149a              |
 </code></pre>
 </div>
 <p>In the <code class="highlighter-rouge">scanf</code> call, it appears that <code class="highlighter-rouge">%d</code> is passed into the function.
@@ -161,21 +161,22 @@ These values are <code class="highlighter-rouge">0x5a</code> and <code class="hi
 
 <p>Lets look at the main function again and see where we can help.</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>                                                  | mov dword [ebp - local_8h], 0x5a                |
-                                                  | mov dword [ebp - local_ch], 0x1ec               |
-                                                  | mov edx, dword [ebp - local_ch]                 |
-                                                  | lea eax, [ebp - local_8h]                       |
-                                                  | add dword [eax], edx                            |
-                                                  | mov eax, dword [ebp - local_8h]                 |
-                                                  | imul eax, dword [ebp - local_8h]                |
-                                                  | mov dword [ebp - local_ch], eax                 |
-                                                  | mov eax, dword [ebp - local_ch]                 |
-                                                  | mov dword [esp + local_4h_2], eax               |
-                                                  | mov eax, dword [ebp - local_4h]                 |
-                                                  | mov dword [esp], eax 			    |
-                                                  | 0x0804850c e85dffffff     call sym.test ;[gc]   |
+<div class="highlighter-rouge"><pre class="highlight"><code>| mov dword [ebp - local_8h], 0x5a                |
+| mov dword [ebp - local_ch], 0x1ec               |
+| mov edx, dword [ebp - local_ch]                 |
+| lea eax, [ebp - local_8h]                       |
+| add dword [eax], edx                            |
+| mov eax, dword [ebp - local_8h]                 |
+| imul eax, dword [ebp - local_8h]                |
+| mov dword [ebp - local_ch], eax                 |
+| mov eax, dword [ebp - local_ch]                 |
+| mov dword [esp + local_4h_2], eax               |
+| mov eax, dword [ebp - local_4h]                 |
+| mov dword [esp], eax 			          |
+| 0x0804850c e85dffffff     call sym.test ;[gc]   |
 </code></pre>
 </div>
+
 <p>So the input that we control - <code class="highlighter-rouge">ebp - 0x4 </code> is being used 
 The value inside <code class="highlighter-rouge">eax</code> is then moved into the address of <code class="highlighter-rouge">esp</code>.
 This means that whatever <code class="highlighter-rouge">eax</code> has been pointing to, now <code class="highlighter-rouge">esp</code> points to it as well.
