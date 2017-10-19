@@ -1,0 +1,336 @@
+<p>Hello! Welcome to my first CTF write-up, aimed at beginners such as myself.
+This is my 4th CTF thus far, and also the one that we did the worst at.
+But we’ll get better. With that said, lets begin!</p>
+
+<p>Please skip to the UnicornJS part if you are familiar with the basics.</p>
+
+<p>#Triangles Writeup</p>
+
+<p>##Challenge: <a href="https://flatearth.fluxfingers.net/challenges/3">Triangles</a>
+When we first visit the <a href="https://triangle.flatearth.fluxfingers.net/">challenge link</a>, we are greeted with a login form preceeded with a flag.</p>
+
+<p>Looking through the source, we find some .js scripts linked as well as a snippet embedded.
+<img src="https://i.imgur.com/5d4chSU.png" alt="https://i.imgur.com/5d4chSU.png" /></p>
+
+<p>Lets look at what these scripts are doing.</p>
+
+<h3 id="secretjs">secret.js</h3>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">test_pw</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">_</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">atob</span><span class="p">(</span><span class="nx">getBase64Image</span><span class="p">(</span><span class="s2">"eye"</span><span class="p">)))</span>
+      <span class="p">,</span> <span class="nx">r</span> <span class="o">=</span> <span class="mi">4096</span>
+      <span class="p">,</span> <span class="nx">m</span> <span class="o">=</span> <span class="mi">8192</span>
+      <span class="p">,</span> <span class="nx">R</span> <span class="o">=</span> <span class="mi">12288</span>
+      <span class="p">,</span> <span class="nx">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">Unicorn</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARCH_ARM</span><span class="p">,</span><span class="nx">uc</span><span class="p">.</span><span class="nx">MODE_ARM</span><span class="p">);</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R9</span><span class="p">,</span> <span class="nx">m</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R10</span><span class="p">,</span> <span class="nx">R</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R8</span><span class="p">,</span> <span class="nx">_</span><span class="p">.</span><span class="nx">length</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">o</span> <span class="o">&lt;</span> <span class="nx">o1</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">o</span><span class="o">++</span><span class="p">)</span>
+        <span class="nx">a</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">r</span> <span class="o">+</span> <span class="nx">o</span><span class="p">,</span> <span class="p">[</span><span class="nx">t</span><span class="p">[</span><span class="nx">o1</span><span class="p">[</span><span class="nx">o</span><span class="p">]]]);</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">m</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">m</span><span class="p">,</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">_</span><span class="p">)),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">R</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">R</span><span class="p">,</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">e</span><span class="p">));</span>
+    <span class="kd">var</span> <span class="nx">u</span> <span class="o">=</span> <span class="nx">r</span>
+      <span class="p">,</span> <span class="nx">c</span> <span class="o">=</span> <span class="nx">r</span> <span class="o">+</span> <span class="nx">o1</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="p">.</span><span class="nx">emu_start</span><span class="p">(</span><span class="nx">u</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_read_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R5</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="kd">function</span> <span class="nx">enc_pw</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">_</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">atob</span><span class="p">(</span><span class="nx">getBase64Image</span><span class="p">(</span><span class="s2">"frei"</span><span class="p">)))</span>
+      <span class="p">,</span> <span class="nx">t</span> <span class="o">=</span> <span class="mi">4096</span>
+      <span class="p">,</span> <span class="nx">r</span> <span class="o">=</span> <span class="mi">8192</span>
+      <span class="p">,</span> <span class="nx">m</span> <span class="o">=</span> <span class="mi">12288</span>
+      <span class="p">,</span> <span class="nx">R</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">Unicorn</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARCH_ARM</span><span class="p">,</span><span class="nx">uc</span><span class="p">.</span><span class="nx">MODE_ARM</span><span class="p">);</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R8</span><span class="p">,</span> <span class="nx">r</span><span class="p">),</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R9</span><span class="p">,</span> <span class="nx">m</span><span class="p">),</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R10</span><span class="p">,</span> <span class="nx">e</span><span class="p">.</span><span class="nx">length</span><span class="p">),</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">t</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">a</span> <span class="o">&lt;</span> <span class="nx">o2</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">a</span><span class="o">++</span><span class="p">)</span>
+        <span class="nx">R</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">t</span> <span class="o">+</span> <span class="nx">a</span><span class="p">,</span> <span class="p">[</span><span class="nx">_</span><span class="p">[</span><span class="nx">o2</span><span class="p">[</span><span class="nx">a</span><span class="p">]]]);</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">),</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">e</span><span class="p">)),</span>
+    <span class="nx">R</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">m</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="nx">t</span>
+      <span class="p">,</span> <span class="nx">u</span> <span class="o">=</span> <span class="nx">t</span> <span class="o">+</span> <span class="nx">o2</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nx">R</span><span class="p">.</span><span class="nx">emu_start</span><span class="p">(</span><span class="nx">o</span><span class="p">,</span> <span class="nx">u</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="nx">htos</span><span class="p">(</span><span class="nx">R</span><span class="p">.</span><span class="nx">mem_read</span><span class="p">(</span><span class="nx">m</span><span class="p">,</span> <span class="nx">e</span><span class="p">.</span><span class="nx">length</span><span class="p">))</span>
+<span class="p">}</span>
+<span class="kd">function</span> <span class="nx">get_pw</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">e</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">atob</span><span class="p">(</span><span class="nx">getBase64Image</span><span class="p">(</span><span class="s2">"templar"</span><span class="p">))),</span> <span class="nx">_</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="nx">t</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">t</span> <span class="o">&lt;</span> <span class="nx">o3</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">t</span><span class="o">++</span><span class="p">)</span>
+        <span class="nx">_</span> <span class="o">+=</span> <span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="nx">e</span><span class="p">[</span><span class="nx">o3</span><span class="p">[</span><span class="nx">t</span><span class="p">]]);</span>
+    <span class="k">return</span> <span class="nx">_</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+<p>Calling <code class="highlighter-rouge">get_pw()</code> in the console returns us <code class="highlighter-rouge">"XYzaSAAX_PBssisodjsal_sSUVWZYYYb"</code>. It seems like this will be useful later.
+Remember that in the screenshot above we saw that the login form has this function:</p>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">login</span><span class="p">(){</span>
+  <span class="kd">var</span> <span class="nx">input</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'password'</span><span class="p">).</span><span class="nx">value</span><span class="p">;</span>
+  <span class="kd">var</span> <span class="nx">enc</span> <span class="o">=</span> <span class="nx">enc_pw</span><span class="p">(</span><span class="nx">input</span><span class="p">);</span>                <span class="c1">//throw entered password into enc_pw</span>
+  <span class="kd">var</span> <span class="nx">pw</span> <span class="o">=</span> <span class="nx">get_pw</span><span class="p">();</span>                      <span class="c1">//pw = get_pw(); </span>
+  <span class="c1">//get enc_pw == get_pw</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">test_pw</span><span class="p">(</span><span class="nx">enc</span><span class="p">,</span> <span class="nx">pw</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+    <span class="nx">alert</span><span class="p">(</span><span class="s1">'Well done!'</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">else</span><span class="p">{</span>
+    <span class="nx">alert</span><span class="p">(</span><span class="s1">'Try again ...'</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+
+<p>Leaving that aside for now, we look next at util.js.</p>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="c1">// From util.js</span>
+
+<span class="c1">// Basically, split t up into arrays and for each array[i],</span>
+<span class="c1">// return its charCode</span>
+<span class="kd">function</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">t</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s2">""</span><span class="p">).</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">t</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="c1">//Convert a unicode array into a String</span>
+<span class="kd">function</span> <span class="nx">htos</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span> <span class="nx">t</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">//</span>
+<span class="kd">function</span> <span class="nx">getBase64Image</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">e</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span>
+      <span class="p">,</span> <span class="nx">a</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s2">"canvas"</span><span class="p">);</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">width</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">width</span><span class="p">,</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">height</span> <span class="o">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">height</span><span class="p">;</span>
+    <span class="kd">var</span> <span class="nx">n</span> <span class="o">=</span> <span class="nx">a</span><span class="p">.</span><span class="nx">getContext</span><span class="p">(</span><span class="s2">"2d"</span><span class="p">);</span>
+    <span class="nx">n</span><span class="p">.</span><span class="nx">drawImage</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">r</span> <span class="o">=</span> <span class="nx">a</span><span class="p">.</span><span class="nx">toDataURL</span><span class="p">(</span><span class="s2">"image/png"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">r</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/^data:image</span><span class="se">\/(</span><span class="sr">png|jpeg</span><span class="se">)</span><span class="sr">;base64,/</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+<p>As the name suggests, util.js contains auxilary functions for use.</p>
+
+<h3 id="unicorn-js">Unicorn JS</h3>
+<p><a href="https://alexaltea.github.io/unicorn.js/">Link to unicornjs project</a>
+UnicornJS is an emulator framework for architectures such as ARM, and will be the most important piece of our puzzle.
+ARMed with knowledge that UnicornJS is being used, we can better translate what <code class="highlighter-rouge">secret.js</code> is doing.</p>
+
+<h5 id="understanding-secretjs">Understanding secret.js</h5>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">test_pw</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">_</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">atob</span><span class="p">(</span><span class="nx">getBase64Image</span><span class="p">(</span><span class="s2">"eye"</span><span class="p">)))</span>
+      <span class="p">,</span> <span class="nx">r</span> <span class="o">=</span> <span class="mi">4096</span>
+      <span class="p">,</span> <span class="nx">m</span> <span class="o">=</span> <span class="mi">8192</span>
+      <span class="p">,</span> <span class="nx">R</span> <span class="o">=</span> <span class="mi">12288</span>
+      <span class="p">,</span> <span class="nx">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">Unicorn</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARCH_ARM</span><span class="p">,</span><span class="nx">uc</span><span class="p">.</span><span class="nx">MODE_ARM</span><span class="p">);</span>
+    <span class="c1">// Write registers and set up memory</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R9</span><span class="p">,</span> <span class="nx">m</span><span class="p">),</span>  <span class="c1">//mem start location for password</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R10</span><span class="p">,</span> <span class="nx">R</span><span class="p">),</span> <span class="c1">// mem start locations for enc pw (input)</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_write_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R8</span><span class="p">,</span> <span class="nx">_</span><span class="p">.</span><span class="nx">length</span><span class="p">),</span> <span class="c1">//using the length of password here.</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">o</span> <span class="o">&lt;</span> <span class="nx">o1</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">o</span><span class="o">++</span><span class="p">)</span> <span class="c1">//o1 is 128 long.</span>
+        <span class="nx">a</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">r</span> <span class="o">+</span> <span class="nx">o</span><span class="p">,</span> <span class="p">[</span><span class="nx">t</span><span class="p">[</span><span class="nx">o1</span><span class="p">[</span><span class="nx">o</span><span class="p">]]]);</span> <span class="c1">// &lt;&lt;&lt; CODE for emulator!</span>
+
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">m</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">),</span>  <span class="c1">//  mapping and writing _</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">m</span><span class="p">,</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">_</span><span class="p">)),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_map</span><span class="p">(</span><span class="nx">R</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="nx">uc</span><span class="p">.</span><span class="nx">PROT_ALL</span><span class="p">),</span> <span class="c1">//  mapping and writing e</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">mem_write</span><span class="p">(</span><span class="nx">R</span><span class="p">,</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">e</span><span class="p">));</span>
+    <span class="c1">// m = charcode version of _</span>
+    <span class="c1">// R = charcode version of e</span>
+    <span class="kd">var</span> <span class="nx">u</span> <span class="o">=</span> <span class="nx">r</span>
+      <span class="p">,</span> <span class="nx">c</span> <span class="o">=</span> <span class="nx">r</span> <span class="o">+</span> <span class="nx">o1</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+    <span class="c1">//begin = r = 4096 (address)</span>
+    <span class="c1">//until = 4096 + 128  (address)</span>
+    <span class="c1">//start emulator and reads from Register5</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="p">.</span><span class="nx">emu_start</span><span class="p">(</span><span class="nx">u</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">reg_read_i32</span><span class="p">(</span><span class="nx">uc</span><span class="p">.</span><span class="nx">ARM_REG_R5</span><span class="p">)</span>
+</code></pre>
+</div>
+<p>Remember that this function is called with the parameters <code class="highlighter-rouge">test_pw(enc_pw(userInput), get_pw())</code>
+From <code class="highlighter-rouge">a.emu_start(u, c, 0, 0)</code>, we can understand that somehow, whatever is written in that memory region can be translated into ARM code.</p>
+
+<p>Hence, inorder to reverse this challenge, we must retrieve the ARM code.
+To do this:</p>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">getARM1</span><span class="p">(){</span>
+  <span class="kd">var</span> <span class="nx">x</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">atob</span><span class="p">(</span><span class="nx">getBase64Image</span><span class="p">(</span><span class="s2">"frei"</span><span class="p">)));</span>
+  <span class="kd">var</span> <span class="nx">output</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">();</span>
+  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">o2</span><span class="p">.</span><span class="nx">length</span> <span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">){</span>
+    <span class="nx">output</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">x</span><span class="p">[</span><span class="nx">o2</span><span class="p">[</span><span class="nx">i</span><span class="p">]];</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="nx">output</span><span class="p">;</span>
+<span class="p">}</span> 
+
+<span class="c1">//Looking at o2, we observe that our output will be in integers. </span>
+<span class="c1">//Lets try converting them to hex values.</span>
+
+<span class="kd">function</span> <span class="nx">toHexString</span><span class="p">(</span><span class="nx">byteArray</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">from</span><span class="p">(</span><span class="nx">byteArray</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="kr">byte</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">(</span><span class="s1">'0'</span> <span class="o">+</span> <span class="p">(</span><span class="kr">byte</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">).</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">)).</span><span class="nx">slice</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">);</span>
+  <span class="p">}).</span><span class="nx">join</span><span class="p">(</span><span class="s1">''</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+<p>With that, we get this <code class="highlighter-rouge">0800a0e10910a0e10a20a0e10030a0e30050a0e30040d0e5010055e30100001a036003e2064084e0064084e2015004e20040c1e5010080e2011081e2013083e2020053e1f2ffffba0000a0e30010a0e30020a0e30030a0e30040a0e30050a0e30060a0e30070a0e30090a0e300a0a0e3</code>
+We then paste this hex-string into an online converter to receive:</p>
+<pre><code class="language-Assembly">    ; FROM test_pw:
+
+    MOV R0, SB       ; R0 = SB, Static base register. This is a synonym for R9. #R0 = R9 = m. (the secret password is here)
+    MOV R1, SL       ; R1 = SL, Stack Limit register. This is a synonym for R10. #R1 = R10 = R (the input password is here)
+    MOV R3, R8       ; R8 = input password length
+    MOV R4, #0
+    MOV R5, #0
+    MOV IP, #0
+    LDRB  R2, [R0]       ; Load secret password
+    LDRB  R6, [R1]       ; Load input password 
+    ADD R6, R6, #5       ; Will do +5
+    AND IP, R4, #1       ; ip == R4 and 1
+    CMP IP, #0           
+    BEQ #0x34             ; Will jump when IP is 0, or rather when R4 is even 
+    SUB R6, R6, #3        ; Will do -3 this when R4 is odd.
+    CMP R2, R6            ; 0x34 here, if R4 is even, just compare.
+    BNE #0x54             ; R2 needs == R6
+    ADD R0, R0, #1
+    ADD R1, R1, #1
+    ADD R4, R4, #1        ; Increment all. R4 is a counter
+    CMP R4, R3            ; Check if counter &lt; input length
+    BLT #0x18
+    MOV R5, #1      ; We need this!
+    MOV R0, #0      ; 0x54 here
+    MOV R1, #0
+    MOV R2, #0
+    MOV R3, #0
+    MOV R4, #0
+    MOV R6, #0
+    MOV R7, #0
+    MOV R8, #0
+    MOV SB, #0
+    MOV SL, #0
+    MOV IP, #0
+
+    ; Repeating this with enc_pw give us ;
+    ; FROM enc_pw:
+
+    MOV R0, R8          ; R8 -&gt; R0, R0 = 8192
+    MOV R1, SB          ; R1 = SB, Static base register. This is a synonym for R9. #R1 = R9 = m. (we should read final result from here)
+    MOV R2, SL          ; R2 = SL, Stack Limit register. This is a synonym for R10. #R2 = R10 = e.length (input length)
+    MOV R3, #0
+    MOV R5, #0
+    LDRB  R4, [R0]      ; Load register byte. #0x14 here
+    CMP R5, #1          ; IS R5 = 1? 
+    BNE #0x28           
+    AND R6, R3, #3      
+    ADD R4, R4, R6
+    ADD R4, R4, #6      ; 0x28 is here. If R5 is 0, come here
+    AND R5, R4, #1      ; R5 == 1 if R4 is odd.
+    STRB  R4, [R1]      ; store register byte
+    ADD R0, R0, #1      
+    ADD R1, R1, #1
+    ADD R3, R3, #1
+    CMP R3, R2
+    BLT #0x14           ; Go back if R3 &lt; input length. R3 is a counter
+    MOV R0, #0
+    MOV R1, #0
+    MOV R2, #0
+    MOV R3, #0
+    MOV R4, #0
+    MOV R5, #0
+    MOV R6, #0
+    MOV R7, #0
+    MOV SB, #0
+    MOV SL, #0
+</code></pre>
+<p>If you are new to assembly, the roughly translated functions can be found at the bottom of the post.</p>
+
+<p>Knowing how the functions work now, we can quickly create a function to help us find what we need to pass <code class="highlighter-rouge">test_pw</code>.</p>
+
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">findReqR6</span><span class="p">(){</span>
+  <span class="kd">var</span> <span class="nx">pw</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="s2">"XYzaSAAX_PBssisodjsal_sSUVWZYYYb"</span><span class="p">);</span> <span class="c1">//We found this string above, from get_pw();</span>
+  <span class="kd">var</span> <span class="nx">required</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">();</span>
+  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">pw</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span> <span class="o">++</span> <span class="p">){</span>
+      <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">pw</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+      <span class="nx">a</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">-</span> <span class="mi">5</span><span class="p">;</span>            <span class="c1">// We do this to find out what the original input needs to be.</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">i</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+        <span class="nx">a</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">+</span> <span class="mi">3</span><span class="p">;</span>          <span class="c1">// Because the test adds 5, and might sub 2 in some cases</span>
+      <span class="p">}</span>                     <span class="c1">// according to the assembly above.</span>
+      <span class="nx">required</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="nx">required</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+
+<p><code class="highlighter-rouge">htos(findReqR6())</code> Will give us “SWu_N?&lt;VZN=qngnm_hn_g]nQPTRXTWT<code class="highlighter-rouge">". 
+But this is not enough, remember that the login is done as such </code>test_pw(enc_pw(userInput), get_pw())`</p>
+
+<p>So we do this:</p>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">reverseEnc</span><span class="p">(</span><span class="nx">argarray</span><span class="p">){</span>
+  <span class="kd">var</span> <span class="nx">test</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kd">var</span> <span class="nx">output</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">();</span>
+  
+  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span> <span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">argarray</span><span class="p">.</span><span class="nx">length</span> <span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">){</span>
+    <span class="kd">var</span> <span class="nx">x</span> <span class="o">=</span> <span class="nx">argarray</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">){</span>
+      <span class="kd">var</span> <span class="nx">sub</span> <span class="o">=</span> <span class="p">(</span><span class="nx">i</span> <span class="o">&amp;</span> <span class="mi">3</span><span class="p">);</span>
+      <span class="nx">x</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">-</span> <span class="nx">sub</span><span class="p">;</span>      <span class="c1">//Once again we find this by reading through the assembly.</span>
+    <span class="p">}</span>
+    <span class="nx">x</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">-</span> <span class="mi">6</span><span class="p">;</span>
+    <span class="nx">test</span> <span class="o">=</span> <span class="p">(</span><span class="nx">argarray</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="nx">output</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">x</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="nx">output</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+<p>Finally, doing <code class="highlighter-rouge">htos(reverseEnc(findReqR6()))</code> gives us <code class="highlighter-rouge">MPmVH94PTH7hhafgYahYaVfKJNLRNQLZ</code>, the flag itself.</p>
+
+<p>Thanks for reading!
+Please do not hesitate to contact me for any clarifications :)
+(send me a message on ctftime, I’m still sorting things out over here.)</p>
+
+<p>######Appendix
+Here are the javascript ‘replica’ versions of the ARM code. 
+While it will not directly translate to what the ARM code is doing, it is a rough version of whats going on.
+I hope whoever is reading this might find it useful.</p>
+
+<pre><code class="language-Javascript">function pwTestReplica(input){
+    var pw = stoh("XYzaSAAX_PBssisodjsal_sSUVWZYYYb");
+    var output = new Array();
+    for(var i = 0; i &lt; input.length; i++){
+      var a = input[i];
+      var b = pw[i];
+      a = a+5;
+      var helper = (i &amp; 1);
+      if(!(helper == 0 )){
+        a = a - 3;
+      }
+      console.log("We need a = " + pw[i]);
+      console.log("We got a = " + a);
+      output[i] =a;
+      
+      if(a != b){
+        console.log("failed at " + i);
+      } 
+    }
+    return output;
+}
+
+
+function encReplica(argstring){
+  var test = 0 ;
+  var argarray = stoh(argstring);
+  var output = new Array();
+  for( var i = 0 ; i &lt; argarray.length ; i++){
+    var x = argarray[i];
+    if(test == 1){
+      var adder = (i &amp; 3);
+      x = x + adder;
+    }
+    x = x +6;
+    test = (x &amp; 1);
+    output[i] = x;
+  }
+  return output;
+}
+</code></pre>
+<p>Thank you for reading!</p>

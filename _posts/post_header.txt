@@ -1,0 +1,9 @@
+:insert
+---
+layout: post
+title:
+comments: true
+date:
+categories:
+---
+
