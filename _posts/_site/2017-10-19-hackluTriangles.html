@@ -4,13 +4,15 @@ But we’ll get better. With that said, lets begin!</p>
 
 <p>Please skip to the UnicornJS part if you are familiar with the basics.</p>
 
-<p>#Triangles Writeup</p>
+<h1 id="triangles-writeup">Triangles Writeup</h1>
 
-<p>##Challenge: <a href="https://flatearth.fluxfingers.net/challenges/3">Triangles</a>
-When we first visit the <a href="https://triangle.flatearth.fluxfingers.net/">challenge link</a>, we are greeted with a login form preceeded with a flag.</p>
+<h2 id="challenge-triangles">Challenge: <a href="https://flatearth.fluxfingers.net/challenges/3">Triangles</a></h2>
 
-<p>Looking through the source, we find some .js scripts linked as well as a snippet embedded.
-<img src="https://i.imgur.com/5d4chSU.png" alt="https://i.imgur.com/5d4chSU.png" /></p>
+<p>When we first visit the <a href="https://triangle.flatearth.fluxfingers.net/">challenge link</a>, we are greeted with a login form preceeded with a flag.</p>
+
+<p>Looking through the source, we find some .js scripts linked as well as a snippet embedded. It looks scary, but <code class="highlighter-rouge">o1, o2, o3</code> will be very useful later.</p>
+
+<p><img src="https://i.imgur.com/5d4chSU.png" alt="https://i.imgur.com/5d4chSU.png" /></p>
 
 <p>Lets look at what these scripts are doing.</p>
 
@@ -113,11 +115,13 @@ Remember that in the screenshot above we saw that the login form has this functi
 <p>As the name suggests, util.js contains auxilary functions for use.</p>
 
 <h3 id="unicorn-js">Unicorn JS</h3>
-<p><a href="https://alexaltea.github.io/unicorn.js/">Link to unicornjs project</a>
-UnicornJS is an emulator framework for architectures such as ARM, and will be the most important piece of our puzzle.
-ARMed with knowledge that UnicornJS is being used, we can better translate what <code class="highlighter-rouge">secret.js</code> is doing.</p>
+<p><a href="https://alexaltea.github.io/unicorn.js/">Link to unicornjs project</a></p>
 
-<h5 id="understanding-secretjs">Understanding secret.js</h5>
+<p>UnicornJS is an emulator framework for architectures such as ARM, and will be the most important piece of our puzzle.</p>
+
+<p>ARMed with knowledge that UnicornJS is being used, we can better translate what <code class="highlighter-rouge">secret.js</code> is doing.</p>
+
+<h4 id="understanding-secretjs">Understanding secret.js</h4>
 <div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">test_pw</span><span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">_</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">t</span> <span class="o">=</span> <span class="nx">stoh</span><span class="p">(</span><span class="nx">atob</span><span class="p">(</span><span class="nx">getBase64Image</span><span class="p">(</span><span class="s2">"eye"</span><span class="p">)))</span>
       <span class="p">,</span> <span class="nx">r</span> <span class="o">=</span> <span class="mi">4096</span>
@@ -171,7 +175,7 @@ To do this:</p>
 <span class="p">}</span>
 </code></pre>
 </div>
-<p>With that, we get this <code class="highlighter-rouge">0800a0e10910a0e10a20a0e10030a0e30050a0e30040d0e5010055e30100001a036003e2064084e0064084e2015004e20040c1e5010080e2011081e2013083e2020053e1f2ffffba0000a0e30010a0e30020a0e30030a0e30040a0e30050a0e30060a0e30070a0e30090a0e300a0a0e3</code>
+<p>By doing <code class="highlighter-rouge">toHexString(getARM1())</code>, we get this <code class="highlighter-rouge">0800a0e10910a0e10a20a0e10030a0e30050a0e30040d0e5010055e30100001a036003e2064084e0064084e2015004e20040c1e5010080e2011081e2013083e2020053e1f2ffffba0000a0e30010a0e30020a0e30030a0e30040a0e30050a0e30060a0e30070a0e30090a0e300a0a0e3</code>
 We then paste this hex-string into an online converter to receive:</p>
 <pre><code class="language-Assembly">    ; FROM test_pw:
 
@@ -240,7 +244,7 @@ We then paste this hex-string into an online converter to receive:</p>
     MOV SB, #0
     MOV SL, #0
 </code></pre>
-<p>If you are new to assembly, the roughly translated functions can be found at the bottom of the post.</p>
+<p>If you are new to assembly, the roughly translated functions can be found at the bottom of the post.<a href="http://armconverter.com/hextoarm/">Here</a> is the online converter I used.</p>
 
 <p>Knowing how the functions work now, we can quickly create a function to help us find what we need to pass <code class="highlighter-rouge">test_pw</code>.</p>
 
@@ -260,10 +264,11 @@ We then paste this hex-string into an online converter to receive:</p>
 </code></pre>
 </div>
 
-<p><code class="highlighter-rouge">htos(findReqR6())</code> Will give us “SWu_N?&lt;VZN=qngnm_hn_g]nQPTRXTWT<code class="highlighter-rouge">". 
-But this is not enough, remember that the login is done as such </code>test_pw(enc_pw(userInput), get_pw())`</p>
+<p><code class="highlighter-rouge">htos(findReqR6())</code> Will give us <code class="highlighter-rouge">SWu_N?&lt;VZN=qngnm_hn_g]nQPTRXTWT`</code>.</p>
 
-<p>So we do this:</p>
+<p>But this is not enough, remember that the login is done as such <code class="highlighter-rouge">test_pw(enc_pw(userInput), get_pw())</code>.</p>
+
+<p>So we construct a function to find the original input we need.</p>
 <div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="kd">function</span> <span class="nx">reverseEnc</span><span class="p">(</span><span class="nx">argarray</span><span class="p">){</span>
   <span class="kd">var</span> <span class="nx">test</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
   <span class="kd">var</span> <span class="nx">output</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">();</span>
@@ -288,10 +293,11 @@ But this is not enough, remember that the login is done as such </code>test_pw(e
 Please do not hesitate to contact me for any clarifications :)
 (send me a message on ctftime, I’m still sorting things out over here.)</p>
 
-<p>######Appendix
-Here are the javascript ‘replica’ versions of the ARM code. 
-While it will not directly translate to what the ARM code is doing, it is a rough version of whats going on.
-I hope whoever is reading this might find it useful.</p>
+<h4 id="appendix">Appendix</h4>
+<p>Here are the javascript ‘replica’ versions of the ARM code. 
+While it will not directly translate to what the ARM code is doing, it is a rough version of whats going on.</p>
+
+<p>I hope whoever is reading this might find it useful.</p>
 
 <pre><code class="language-Javascript">function pwTestReplica(input){
     var pw = stoh("XYzaSAAX_PBssisodjsal_sSUVWZYYYb");

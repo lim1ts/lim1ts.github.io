@@ -11,12 +11,14 @@ But we'll get better. With that said, lets begin!
 
 Please skip to the UnicornJS part if you are familiar with the basics.
 
-#Triangles Writeup
+# Triangles Writeup
 
-##Challenge: [Triangles](https://flatearth.fluxfingers.net/challenges/3)
+## Challenge: [Triangles](https://flatearth.fluxfingers.net/challenges/3)
+
 When we first visit the [challenge link](https://triangle.flatearth.fluxfingers.net/), we are greeted with a login form preceeded with a flag.
 
-Looking through the source, we find some .js scripts linked as well as a snippet embedded.
+Looking through the source, we find some .js scripts linked as well as a snippet embedded. It looks scary, but `o1, o2, o3` will be very useful later.
+
 ![https://i.imgur.com/5d4chSU.png](https://i.imgur.com/5d4chSU.png)
 
 Lets look at what these scripts are doing.
@@ -121,11 +123,12 @@ As the name suggests, util.js contains auxilary functions for use.
 
 
 ### Unicorn JS
-[Link to unicornjs project](https://alexaltea.github.io/unicorn.js/)
-UnicornJS is an emulator framework for architectures such as ARM, and will be the most important piece of our puzzle.
+[UnicornJS](https://alexaltea.github.io/unicorn.js/) is an emulator framework for architectures such as ARM, and will be the most important piece of our puzzle.
+Visit the project page in question and read the demo to understand how its being used. We then realize that the emulator must be taking in some ARM code.
+
 ARMed with knowledge that UnicornJS is being used, we can better translate what `secret.js` is doing.
 
-##### Understanding secret.js
+#### Understanding secret.js
 ```javascript
 function test_pw(e, _) {
     var t = stoh(atob(getBase64Image("eye")))
@@ -179,7 +182,7 @@ function toHexString(byteArray) {
   }).join('')
 }
 ```
-With that, we get this `0800a0e10910a0e10a20a0e10030a0e30050a0e30040d0e5010055e30100001a036003e2064084e0064084e2015004e20040c1e5010080e2011081e2013083e2020053e1f2ffffba0000a0e30010a0e30020a0e30030a0e30040a0e30050a0e30060a0e30070a0e30090a0e300a0a0e3`
+By doing `toHexString(getARM1())`, we get this `0800a0e10910a0e10a20a0e10030a0e30050a0e30040d0e5010055e30100001a036003e2064084e0064084e2015004e20040c1e5010080e2011081e2013083e2020053e1f2ffffba0000a0e30010a0e30020a0e30030a0e30040a0e30050a0e30060a0e30070a0e30090a0e300a0a0e3`
 We then paste this hex-string into an online converter to receive:
 ```Assembly
     ; FROM test_pw:
@@ -249,7 +252,7 @@ We then paste this hex-string into an online converter to receive:
     MOV SB, #0
     MOV SL, #0
 ```
-If you are new to assembly, the roughly translated functions can be found at the bottom of the post.
+If you are new to assembly, the roughly translated functions can be found at the bottom of the post.[Here](http://armconverter.com/hextoarm/) is the online converter I used.
 
 Knowing how the functions work now, we can quickly create a function to help us find what we need to pass `test_pw`.
 
@@ -269,10 +272,11 @@ function findReqR6(){
 }
 ```
 
-`htos(findReqR6())` Will give us "SWu_N?<VZN=qngnm_hn_g]nQPTRXTWT`". 
-But this is not enough, remember that the login is done as such `test_pw(enc_pw(userInput), get_pw())`
+`htos(findReqR6())` Will give us ``` SWu_N?<VZN=qngnm_hn_g]nQPTRXTWT` ```. 
 
-So we do this:
+But this is not enough, remember that the login is done as such `test_pw(enc_pw(userInput), get_pw())`.
+
+So we construct a function to find the original input we need.
 ```javascript
 function reverseEnc(argarray){
   var test = 0;
@@ -298,9 +302,10 @@ Thanks for reading!
 Please do not hesitate to contact me for any clarifications :)
 (send me a message on ctftime, I'm still sorting things out over here.)
 
-######Appendix
+#### Appendix
 Here are the javascript 'replica' versions of the ARM code. 
 While it will not directly translate to what the ARM code is doing, it is a rough version of whats going on.
+
 I hope whoever is reading this might find it useful.
 
 ```Javascript
